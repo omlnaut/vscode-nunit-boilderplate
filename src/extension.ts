@@ -80,21 +80,22 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const className = classSymbol.name;
-        const constructorSymbol = classSymbol.children.find(child => child.kind === vscode.SymbolKind.Constructor);
-
         let constructorParams: string[] = [];
 
-        if (constructorSymbol) {
-            const constructorSignature = document.getText(new vscode.Range(
-                constructorSymbol.range.start,
-                constructorSymbol.range.end
-            ));
+        if (classSymbol.children) {
+            const constructorSymbol = classSymbol.children.find(child => child.kind === vscode.SymbolKind.Constructor);
 
-            const paramsRegex = /\(([^)]+)\)/;
-            const paramsMatch = constructorSignature.match(paramsRegex);
+            if (constructorSymbol) {
+                const start = new vscode.Position(constructorSymbol.range.start.line, constructorSymbol.range.start.character);
+                const end = new vscode.Position(constructorSymbol.range.end.line, constructorSymbol.range.end.character);
+                const constructorSignature = document.getText(new vscode.Range(start, end));
 
-            if (paramsMatch && paramsMatch[1]) {
-                constructorParams = paramsMatch[1].split(',').map(param => param.trim().split(' ')[0]);
+                const paramsRegex = /\(([^)]+)\)/;
+                const paramsMatch = constructorSignature.match(paramsRegex);
+
+                if (paramsMatch && paramsMatch[1]) {
+                    constructorParams = paramsMatch[1].split(',').map(param => param.trim().split(' ')[0]);
+                }
             }
         }
 
