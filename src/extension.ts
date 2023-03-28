@@ -1,42 +1,13 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { DocumentSymbol } from 'vscode-languageserver-types';
-
-function generateNUnitBoilerplate(className: string, constructorParams: string[]): string {
-    const instanceName = className.charAt(0).toLowerCase() + className.slice(1);
-    const dependencies = constructorParams.join(', ');
-    const mocks = constructorParams.map(param => `private Mock<${param}> _${param}Mock;`).join('\n');
-    const mockInitializations = constructorParams.map(param => `_${param}Mock = new Mock<${param}>();`).join('\n');
-
-    return `
-using NUnit.Framework;
-using Moq;
-
-namespace YourNamespace
-{
-    [TestFixture]
-    public class ${className}Tests
-    {
-        private ${className} ${instanceName};
-        ${mocks}
-
-        [SetUp]
-        public void Setup()
-        {
-            ${mockInitializations}
-            ${instanceName} = new ${className}(${dependencies});
-        }
-
-        // Add your test methods here
-    }
-}`;
-}
 
 export async function activate(context: vscode.ExtensionContext) {
     // Language client configuration
     const serverOptions: ServerOptions = {
-        command: 'dotnet',
-        args: ['path-to-OmniSharp.LanguageServer.dll'],
+        command: path.join(context.extensionPath, 'omnisharp', 'OmniSharp.exe'),
+        args: ['--languageserver'],
         transport: TransportKind.stdio
     };
 
@@ -46,8 +17,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const languageClient = new LanguageClient('CSharp', 'C# Language Server', serverOptions, clientOptions);
     // Start the language client and wait for it to be ready
-    languageClient.start();
-    await languageClient.initializeResult;
+    await languageClient.start();
 
     // Add the languageClient to context.subscriptions
     context.subscriptions.push(languageClient);
@@ -116,6 +86,37 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(disposable);
 }
+
+function generateNUnitBoilerplate(className: string, constructorParams: string[]): string {
+    const instanceName = className.charAt(0).toLowerCase() + className.slice(1);
+    const dependencies = constructorParams.join(', ');
+    const mocks = constructorParams.map(param => `private Mock<${param}> _${param}Mock;`).join('\n');
+    const mockInitializations = constructorParams.map(param => `_${param}Mock = new Mock<${param}>();`).join('\n');
+
+    return `
+using NUnit.Framework;
+using Moq;
+
+namespace YourNamespace
+{
+    [TestFixture]
+    public class ${className}Tests
+    {
+        private ${className} ${instanceName};
+        ${mocks}
+
+        [SetUp]
+        public void Setup()
+        {
+            ${mockInitializations}
+            ${instanceName} = new ${className}(${dependencies});
+        }
+
+        // Add your test methods here
+    }
+}`;
+}
+
 
 
 
