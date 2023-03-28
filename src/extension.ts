@@ -1,26 +1,79 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+
 export function activate(context: vscode.ExtensionContext) {
+	let disposable = vscode.commands.registerCommand('extension.generateNUnitBoilerplate', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (editor) {
+			const document = editor.document;
+			const className = path.basename(document.fileName, '.cs');
+			const testClassName = className + 'Tests';
+			const testFilePath = path.join(path.dirname(document.fileName), testClassName + '.cs');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "nunit-boilerplate-generator" is now active!');
+			if (fs.existsSync(testFilePath)) {
+				vscode.window.showErrorMessage('Test file already exists.');
+				return;
+			}
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('nunit-boilerplate-generator.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from NunitBoilerplateGenerator!');
+			const boilerplate = generateNUnitBoilerplate(className, testClassName);
+			fs.writeFileSync(testFilePath, boilerplate);
+
+			vscode.window.showInformationMessage('NUnit boilerplate file created.');
+			const openPath = vscode.Uri.file(testFilePath);
+			await vscode.workspace.openTextDocument(openPath);
+		}
 	});
 
 	context.subscriptions.push(disposable);
 }
 
+
+function generateNUnitBoilerplate(className: string, testClassName: string): string {
+	return `using NUnit.Framework;
+using Moq;
+using System;
+
+namespace Tests
+{
+[TestFixture]
+public class ${testClassName}
+
+{
+    private ${className} _${className};
+    // Add private variables for each mock here
+
+    [SetUp]
+    public void Setup()
+    {
+        // Initialize your mocks here
+        // var mockDependency1 = new Mock<IDependency1>();
+
+        _${className} = new ${className}(); // Pass your mock dependencies here
+    }
+
+    [Test]
+    public void TestMethod1()
+    {
+        // Arrange
+        // Set up any necessary mock behavior here
+        // mockDependency1.Setup(...);
+
+        // Act
+        // Call the method to be tested on _${className} and store the result, if any
+        // var result = _${className}.MethodToTest();
+
+        // Assert
+        // Verify the expected result or behavior
+        // Assert.AreEqual(expectedResult, result);
+        // mockDependency1.Verify(...);
+    }
+
+    // Add more test methods here
+}
+}`;
+}
+
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
